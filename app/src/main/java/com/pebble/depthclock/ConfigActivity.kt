@@ -89,11 +89,12 @@ private fun ConfigScreen() {
         ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        busy = true; status = "Finding the subject…"
+        busy = true
+        status = "Finding the subject… (first run downloads a small on-device model — can take up to a minute)"
         scope.launch {
             try {
                 val source = withContext(Dispatchers.IO) { ImageUtils.loadScaled(ctx, uri) }
-                val cut = withContext(Dispatchers.Default) { Segmenter.cutout(source) }
+                val cut = withContext(Dispatchers.Default) { Segmenter.cutout(ctx, source) }
                 if (cut == null) {
                     status = "Couldn't find a clear subject — try a photo with a person or object in front."
                 } else {
