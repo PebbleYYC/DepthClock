@@ -1,5 +1,6 @@
 package com.pebble.depthclock
 
+import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -11,21 +12,30 @@ import java.util.Locale
  * Draws the clock (and optional date) onto a Canvas. Shared by the config preview and the
  * live wallpaper engine so what you set up is exactly what you get.
  *
- * All sizing is relative to the surface height, so it looks the same on the preview card and
- * on the full screen.
+ * Uses the bundled Inter variable font (an OFL-licensed stand-in for SF Pro) at a semibold
+ * weight for the time and a medium weight for the date, echoing the iOS lock-screen clock.
  */
 object ClockRenderer {
 
-    // Heavy weight to echo the iOS lock-screen clock (SF Pro is proprietary; Roboto Black is
-    // the closest system match).
-    private val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = Typeface.create("sans-serif-black", Typeface.NORMAL)
-        textAlign = Paint.Align.CENTER
-        letterSpacing = -0.02f
-    }
-    private val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-        textAlign = Paint.Align.CENTER
+    private val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+    private val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+
+    private var fontsReady = false
+
+    private fun ensureFonts(context: Context) {
+        if (fontsReady) return
+        val inter = try {
+            Typeface.createFromAsset(context.assets, "fonts/Inter.ttf")
+        } catch (_: Throwable) {
+            Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        timePaint.typeface = inter
+        datePaint.typeface = inter
+        // Pick weights/optical-size from the variable font (ignored gracefully if unsupported).
+        runCatching { timePaint.fontVariationSettings = "'wght' 620, 'opsz' 32" }
+        runCatching { datePaint.fontVariationSettings = "'wght' 560, 'opsz' 20" }
+        timePaint.letterSpacing = -0.01f
+        fontsReady = true
     }
 
     fun draw(
@@ -39,9 +49,12 @@ object ClockRenderer {
         showDate: Boolean,
         nowMillis: Long,
         is24h: Boolean,
+        context: Context,
         offsetX: Float = 0f,
         offsetY: Float = 0f
     ) {
+        ensureFonts(context)
+
         val cal = Calendar.getInstance().apply { timeInMillis = nowMillis }
         val hour = if (is24h) cal.get(Calendar.HOUR_OF_DAY)
         else cal.get(Calendar.HOUR).let { if (it == 0) 12 else it }
@@ -54,22 +67,28 @@ object ClockRenderer {
             String.format(Locale.getDefault(), "%d:%02d", hour, minute)
 
         val cx = w / 2f + offsetX
-        val baseY = h * yFraction + offsetY
+        val timeBaseline = h * yFraction + offsetY
 
         timePaint.color = color
-        timePaint.textSize = h * 0.11f * scale
-        // Soft shadow so the clock stays legible over any photo.
-        timePaint.setShadowLayer(h * 0.012f, 0f, h * 0.004f, Color.argb(130, 0, 0, 0))
-        canvas.drawText(time, cx, baseY, timePaint)
+        timePaint.textSize = h * 0.118f * scale
+        timePaint.setShadowLayer(h * 0.010f, 0f, h * 0.004f, Color.argb(115, 0, 0, 0))
 
         if (showDate) {
+            datePaint.color = color
+            datePaint.alpha = 235
+            datePaint.textSize = h * 0.026f * scale
+            datePaint.setShadowLayer(h * 0.007f, 0f, h * 0.003f, Color.argb(110, 0, 0, 0))
+
             val fmt = java.text.SimpleDateFormat("EEEE, MMM d", Locale.getDefault())
             val dateStr = fmt.format(cal.time)
-            datePaint.color = color
-            datePaint.alpha = 220
-            datePaint.textSize = h * 0.028f * scale
-            datePaint.setShadowLayer(h * 0.008f, 0f, h * 0.003f, Color.argb(120, 0, 0, 0))
-            canvas.drawText(dateStr, cx, baseY - h * 0.085f * scale, datePaint)
+
+            // Sit the date clearly above the top of the time digits (iOS-style gap).
+            val gap = h * 0.034f * scale
+            val timeTop = timeBaseline + timePaint.fontMetrics.ascent
+            val dateBaseline = timeTop - gap - datePaint.fontMetrics.descent
+            canvas.drawText(dateStr, cx, dateBaseline, datePaint)
         }
+
+        canvas.drawText(time, cx, timeBaseline, timePaint)
     }
 }

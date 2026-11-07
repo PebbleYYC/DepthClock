@@ -192,7 +192,7 @@ class DepthWallpaperService : WallpaperService() {
             if (background == null || foreground == null) {
                 canvas.drawColor(Color.parseColor("#15171C"))
                 val now = System.currentTimeMillis()
-                ClockRenderer.draw(canvas, w, h, clockColor, clockY, clockScale, showSeconds, showDate, now, is24h)
+                ClockRenderer.draw(canvas, w, h, clockColor, clockY, clockScale, showSeconds, showDate, now, is24h, this@DepthWallpaperService)
                 return
             }
 
@@ -219,7 +219,7 @@ class DepthWallpaperService : WallpaperService() {
             drawLayer(canvas, background, baseLeft + bgX, baseTop + bgY, dw, dh)
 
             val now = System.currentTimeMillis()
-            ClockRenderer.draw(canvas, w, h, clockColor, clockY, clockScale, showSeconds, showDate, now, is24h, ckX, ckY)
+            ClockRenderer.draw(canvas, w, h, clockColor, clockY, clockScale, showSeconds, showDate, now, is24h, this@DepthWallpaperService, ckX, ckY)
 
             drawLayer(canvas, foreground, baseLeft + fgX, baseTop + fgY, dw, dh)
         }

@@ -234,7 +234,7 @@ private fun PreviewCanvas(
             dstSize = androidx.compose.ui.unit.IntSize(dw.toInt(), dh.toInt())
         )
         drawContext.canvas.nativeCanvas.apply {
-            ClockRenderer.draw(this, w, h, clockColor.toArgb(), clockY, clockScale, showSeconds, showDate, now, DateFormat.is24HourFormat(ctx))
+            ClockRenderer.draw(this, w, h, clockColor.toArgb(), clockY, clockScale, showSeconds, showDate, now, DateFormat.is24HourFormat(ctx), ctx)
         }
         drawImage(
             fgImg,
