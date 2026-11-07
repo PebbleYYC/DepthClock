@@ -51,8 +51,9 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // On-device subject segmentation (cuts the person/object out of the photo)
-    implementation("com.google.mlkit:segmentation-subject:16.0.0-beta1")
+    // On-device subject segmentation (cuts the person/object out of the photo).
+    // Unbundled: the model is downloaded via Google Play services.
+    implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
