@@ -44,6 +44,8 @@ class DepthWallpaperService : WallpaperService() {
         private var clockY = 0.26f
         private var clockScale = 1.0f
         private var clockAlpha = 1.0f
+        private var clockStretch = 1.2f
+        private var clockWeight = 520f
         private var showSeconds = false
         private var showDate = true
         private var parallaxEnabled = true
@@ -124,6 +126,8 @@ class DepthWallpaperService : WallpaperService() {
             clockY = p.getFloat(Prefs.KEY_CLOCK_Y, 0.26f)
             clockScale = p.getFloat(Prefs.KEY_CLOCK_SCALE, 1.0f)
             clockAlpha = p.getFloat(Prefs.KEY_CLOCK_ALPHA, 1.0f)
+            clockStretch = p.getFloat(Prefs.KEY_CLOCK_STRETCH, 1.2f)
+            clockWeight = p.getFloat(Prefs.KEY_CLOCK_WEIGHT, 520f)
             showSeconds = p.getBoolean(Prefs.KEY_SHOW_SECONDS, false)
             showDate = p.getBoolean(Prefs.KEY_SHOW_DATE, true)
             parallaxEnabled = p.getBoolean(Prefs.KEY_PARALLAX, true)
@@ -194,7 +198,7 @@ class DepthWallpaperService : WallpaperService() {
             if (background == null || foreground == null) {
                 canvas.drawColor(Color.parseColor("#15171C"))
                 val now = System.currentTimeMillis()
-                ClockRenderer.draw(canvas, w, h, clockColor, clockY, clockScale, showSeconds, showDate, now, is24h, this@DepthWallpaperService, clockAlpha)
+                ClockRenderer.draw(canvas, w, h, clockColor, clockY, clockScale, showSeconds, showDate, now, is24h, this@DepthWallpaperService, clockStretch, clockWeight, clockAlpha)
                 return
             }
 
@@ -221,7 +225,7 @@ class DepthWallpaperService : WallpaperService() {
             drawLayer(canvas, background, baseLeft + bgX, baseTop + bgY, dw, dh)
 
             val now = System.currentTimeMillis()
-            ClockRenderer.draw(canvas, w, h, clockColor, clockY, clockScale, showSeconds, showDate, now, is24h, this@DepthWallpaperService, clockAlpha, ckX, ckY)
+            ClockRenderer.draw(canvas, w, h, clockColor, clockY, clockScale, showSeconds, showDate, now, is24h, this@DepthWallpaperService, clockStretch, clockWeight, clockAlpha, ckX, ckY)
 
             drawLayer(canvas, foreground, baseLeft + fgX, baseTop + fgY, dw, dh)
         }

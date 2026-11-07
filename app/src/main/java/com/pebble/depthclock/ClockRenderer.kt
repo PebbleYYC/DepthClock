@@ -12,8 +12,9 @@ import java.util.Locale
  * Draws the clock (and optional date) onto a Canvas. Shared by the config preview and the
  * live wallpaper engine so what you set up is exactly what you get.
  *
- * Uses the bundled Inter variable font (an OFL-licensed stand-in for SF Pro). The time is large,
- * slightly condensed and medium-weight to echo the iOS lock-screen clock; the date floats above.
+ * Uses the bundled Inter variable font (an OFL-licensed stand-in for SF Pro). The time weight
+ * and a vertical stretch are adjustable to push Inter toward the tall iOS-clock look. If the
+ * user loads their own font, it is used verbatim (no weight axis, no stretch tricks).
  */
 object ClockRenderer {
 
@@ -22,37 +23,47 @@ object ClockRenderer {
 
     private var fontsReady = false
     private var loadedFontKey: String? = null
+    private var isCustomFont = false
+    private var lastWeight = -1f
 
     private fun ensureFonts(context: Context) {
         val custom = Prefs.fontFile(context)
         val desired = if (custom.exists()) custom.absolutePath else "asset:inter"
         if (fontsReady && desired == loadedFontKey) return
 
-        var isCustom = false
+        var cust = false
         val tf = if (desired == "asset:inter") {
             runCatching { Typeface.createFromAsset(context.assets, "fonts/Inter.ttf") }
                 .getOrElse { Typeface.create("sans-serif", Typeface.NORMAL) }
         } else {
-            runCatching { Typeface.createFromFile(custom) }.getOrNull()?.also { isCustom = true }
+            runCatching { Typeface.createFromFile(custom) }.getOrNull()?.also { cust = true }
                 ?: runCatching { Typeface.createFromAsset(context.assets, "fonts/Inter.ttf") }.getOrNull()
                 ?: Typeface.create("sans-serif", Typeface.NORMAL)
         }
         timePaint.typeface = tf
         datePaint.typeface = tf
-        if (isCustom) {
-            // Honor the supplied font's real proportions (e.g. SF Pro).
+        if (cust) {
             timePaint.textScaleX = 1.0f
             runCatching { timePaint.fontVariationSettings = "" }
             runCatching { datePaint.fontVariationSettings = "" }
         } else {
-            runCatching { timePaint.fontVariationSettings = "'wght' 560, 'opsz' 32" }
-            runCatching { datePaint.fontVariationSettings = "'wght' 520, 'opsz' 20" }
-            // Slightly condensed → taller-looking numerals, closer to SF Pro.
             timePaint.textScaleX = 0.95f
+            runCatching { datePaint.fontVariationSettings = "'wght' 500, 'opsz' 20" }
         }
         timePaint.letterSpacing = -0.02f
+        isCustomFont = cust
+        lastWeight = -1f
         loadedFontKey = desired
         fontsReady = true
+    }
+
+    /** Re-applies the variable weight only when it changes (building a Typeface per frame is costly). */
+    private fun applyWeight(weight: Float) {
+        if (isCustomFont) return
+        val wq = weight.toInt().toFloat()
+        if (wq == lastWeight) return
+        runCatching { timePaint.fontVariationSettings = "'wght' ${wq.toInt()}, 'opsz' 32" }
+        lastWeight = wq
     }
 
     fun draw(
@@ -67,11 +78,14 @@ object ClockRenderer {
         nowMillis: Long,
         is24h: Boolean,
         context: Context,
+        stretchY: Float = 1f,
+        weight: Float = 560f,
         opacity: Float = 1f,
         offsetX: Float = 0f,
         offsetY: Float = 0f
     ) {
         ensureFonts(context)
+        applyWeight(weight)
 
         val cal = Calendar.getInstance().apply { timeInMillis = nowMillis }
         val hour = if (is24h) cal.get(Calendar.HOUR_OF_DAY)
@@ -85,12 +99,13 @@ object ClockRenderer {
             String.format(Locale.getDefault(), "%d:%02d", hour, minute)
 
         val a = opacity.coerceIn(0f, 1f)
+        val stretch = stretchY.coerceIn(0.8f, 1.8f)
         val cx = w / 2f + offsetX
         val timeBaseline = h * yFraction + offsetY
 
         timePaint.color = color
         timePaint.alpha = (255 * a).toInt()
-        timePaint.textSize = h * 0.158f * scale
+        timePaint.textSize = h * 0.148f * scale
         timePaint.setShadowLayer(h * 0.010f, 0f, h * 0.004f, Color.argb((110 * a).toInt(), 0, 0, 0))
 
         if (showDate) {
@@ -102,13 +117,17 @@ object ClockRenderer {
             val fmt = java.text.SimpleDateFormat("EEEE, MMM d", Locale.getDefault())
             val dateStr = fmt.format(cal.time)
 
-            // Sit the date clearly above the top of the time digits (iOS-style gap).
+            // Account for the vertical stretch when placing the date above the time.
+            val timeTop = timeBaseline + timePaint.fontMetrics.ascent * stretch
             val gap = h * 0.030f * scale
-            val timeTop = timeBaseline + timePaint.fontMetrics.ascent
             val dateBaseline = timeTop - gap - datePaint.fontMetrics.descent
             canvas.drawText(dateStr, cx, dateBaseline, datePaint)
         }
 
+        // Vertically stretch the time around its baseline for the tall iOS-clock proportion.
+        val saved = canvas.save()
+        canvas.scale(1f, stretch, cx, timeBaseline)
         canvas.drawText(time, cx, timeBaseline, timePaint)
+        canvas.restoreToCount(saved)
     }
 }

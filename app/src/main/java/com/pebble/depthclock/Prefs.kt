@@ -16,6 +16,8 @@ object Prefs {
     const val KEY_CLOCK_Y = "clock_y"          // 0f..1f fraction of height for the clock baseline
     const val KEY_CLOCK_SCALE = "clock_scale"  // relative size multiplier
     const val KEY_CLOCK_ALPHA = "clock_alpha"  // 0f..1f clock opacity
+    const val KEY_CLOCK_STRETCH = "clock_stretch" // vertical stretch of the time
+    const val KEY_CLOCK_WEIGHT = "clock_weight"   // Inter variable-font weight (300..900)
     const val KEY_SHOW_SECONDS = "show_seconds"
     const val KEY_SHOW_DATE = "show_date"
     const val KEY_PARALLAX = "parallax"
