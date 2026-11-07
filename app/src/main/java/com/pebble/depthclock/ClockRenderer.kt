@@ -12,8 +12,8 @@ import java.util.Locale
  * Draws the clock (and optional date) onto a Canvas. Shared by the config preview and the
  * live wallpaper engine so what you set up is exactly what you get.
  *
- * Uses the bundled Inter variable font (an OFL-licensed stand-in for SF Pro) at a semibold
- * weight for the time and a medium weight for the date, echoing the iOS lock-screen clock.
+ * Uses the bundled Inter variable font (an OFL-licensed stand-in for SF Pro). The time is large,
+ * slightly condensed and medium-weight to echo the iOS lock-screen clock; the date floats above.
  */
 object ClockRenderer {
 
@@ -31,10 +31,11 @@ object ClockRenderer {
         }
         timePaint.typeface = inter
         datePaint.typeface = inter
-        // Pick weights/optical-size from the variable font (ignored gracefully if unsupported).
-        runCatching { timePaint.fontVariationSettings = "'wght' 620, 'opsz' 32" }
-        runCatching { datePaint.fontVariationSettings = "'wght' 560, 'opsz' 20" }
-        timePaint.letterSpacing = -0.01f
+        runCatching { timePaint.fontVariationSettings = "'wght' 560, 'opsz' 32" }
+        runCatching { datePaint.fontVariationSettings = "'wght' 520, 'opsz' 20" }
+        // Slightly condensed + tight tracking → taller-looking numerals, closer to SF Pro.
+        timePaint.textScaleX = 0.95f
+        timePaint.letterSpacing = -0.02f
         fontsReady = true
     }
 
@@ -50,6 +51,7 @@ object ClockRenderer {
         nowMillis: Long,
         is24h: Boolean,
         context: Context,
+        opacity: Float = 1f,
         offsetX: Float = 0f,
         offsetY: Float = 0f
     ) {
@@ -66,24 +68,26 @@ object ClockRenderer {
         else
             String.format(Locale.getDefault(), "%d:%02d", hour, minute)
 
+        val a = opacity.coerceIn(0f, 1f)
         val cx = w / 2f + offsetX
         val timeBaseline = h * yFraction + offsetY
 
         timePaint.color = color
-        timePaint.textSize = h * 0.118f * scale
-        timePaint.setShadowLayer(h * 0.010f, 0f, h * 0.004f, Color.argb(115, 0, 0, 0))
+        timePaint.alpha = (255 * a).toInt()
+        timePaint.textSize = h * 0.158f * scale
+        timePaint.setShadowLayer(h * 0.010f, 0f, h * 0.004f, Color.argb((110 * a).toInt(), 0, 0, 0))
 
         if (showDate) {
             datePaint.color = color
-            datePaint.alpha = 235
-            datePaint.textSize = h * 0.026f * scale
-            datePaint.setShadowLayer(h * 0.007f, 0f, h * 0.003f, Color.argb(110, 0, 0, 0))
+            datePaint.alpha = (235 * a).toInt()
+            datePaint.textSize = h * 0.027f * scale
+            datePaint.setShadowLayer(h * 0.007f, 0f, h * 0.003f, Color.argb((105 * a).toInt(), 0, 0, 0))
 
             val fmt = java.text.SimpleDateFormat("EEEE, MMM d", Locale.getDefault())
             val dateStr = fmt.format(cal.time)
 
             // Sit the date clearly above the top of the time digits (iOS-style gap).
-            val gap = h * 0.034f * scale
+            val gap = h * 0.030f * scale
             val timeTop = timeBaseline + timePaint.fontMetrics.ascent
             val dateBaseline = timeTop - gap - datePaint.fontMetrics.descent
             canvas.drawText(dateStr, cx, dateBaseline, datePaint)

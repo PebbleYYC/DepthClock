@@ -64,8 +64,9 @@ private fun ConfigScreen() {
     var status by remember { mutableStateOf<String?>(null) }
 
     var clockColor by remember { mutableStateOf(Color(p.getInt(Prefs.KEY_CLOCK_COLOR, Color.White.toArgb()))) }
-    var clockY by remember { mutableFloatStateOf(p.getFloat(Prefs.KEY_CLOCK_Y, 0.30f)) }
+    var clockY by remember { mutableFloatStateOf(p.getFloat(Prefs.KEY_CLOCK_Y, 0.26f)) }
     var clockScale by remember { mutableFloatStateOf(p.getFloat(Prefs.KEY_CLOCK_SCALE, 1.0f)) }
+    var clockAlpha by remember { mutableFloatStateOf(p.getFloat(Prefs.KEY_CLOCK_ALPHA, 1.0f)) }
     var showSeconds by remember { mutableStateOf(p.getBoolean(Prefs.KEY_SHOW_SECONDS, false)) }
     var showDate by remember { mutableStateOf(p.getBoolean(Prefs.KEY_SHOW_DATE, true)) }
     var parallax by remember { mutableStateOf(p.getBoolean(Prefs.KEY_PARALLAX, true)) }
@@ -75,6 +76,7 @@ private fun ConfigScreen() {
             .putInt(Prefs.KEY_CLOCK_COLOR, clockColor.toArgb())
             .putFloat(Prefs.KEY_CLOCK_Y, clockY)
             .putFloat(Prefs.KEY_CLOCK_SCALE, clockScale)
+            .putFloat(Prefs.KEY_CLOCK_ALPHA, clockAlpha)
             .putBoolean(Prefs.KEY_SHOW_SECONDS, showSeconds)
             .putBoolean(Prefs.KEY_SHOW_DATE, showDate)
             .putBoolean(Prefs.KEY_PARALLAX, parallax)
@@ -83,7 +85,7 @@ private fun ConfigScreen() {
     }
 
     // Save settings whenever a knob changes so a live wallpaper already running picks them up.
-    LaunchedEffect(clockColor, clockY, clockScale, showSeconds, showDate, parallax) { persist() }
+    LaunchedEffect(clockColor, clockY, clockScale, clockAlpha, showSeconds, showDate, parallax) { persist() }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -148,7 +150,7 @@ private fun ConfigScreen() {
                 .align(Alignment.CenterHorizontally)
         ) {
             if (bg != null && fg != null) {
-                PreviewCanvas(bg!!, fg!!, clockColor, clockY, clockScale, showSeconds, showDate)
+                PreviewCanvas(bg!!, fg!!, clockColor, clockY, clockScale, clockAlpha, showSeconds, showDate)
             } else {
                 Surface(color = Color(0xFF15171C), modifier = Modifier.fillMaxSize()) {
                     Box(contentAlignment = Alignment.Center) {
@@ -177,7 +179,8 @@ private fun ConfigScreen() {
         }
 
         LabeledSlider("Vertical position", clockY, 0.08f..0.6f) { clockY = it }
-        LabeledSlider("Size", clockScale, 0.6f..1.6f) { clockScale = it }
+        LabeledSlider("Size", clockScale, 0.6f..1.8f) { clockScale = it }
+        LabeledSlider("Opacity", clockAlpha, 0.2f..1f) { clockAlpha = it }
 
         ToggleRow("Show seconds", showSeconds) { showSeconds = it }
         ToggleRow("Show date", showDate) { showDate = it }
@@ -203,7 +206,7 @@ private fun ConfigScreen() {
 @Composable
 private fun PreviewCanvas(
     bg: Bitmap, fg: Bitmap, clockColor: Color,
-    clockY: Float, clockScale: Float, showSeconds: Boolean, showDate: Boolean
+    clockY: Float, clockScale: Float, clockAlpha: Float, showSeconds: Boolean, showDate: Boolean
 ) {
     val ctx = LocalContext.current
     // Recompose every second so the preview clock ticks.
@@ -234,7 +237,7 @@ private fun PreviewCanvas(
             dstSize = androidx.compose.ui.unit.IntSize(dw.toInt(), dh.toInt())
         )
         drawContext.canvas.nativeCanvas.apply {
-            ClockRenderer.draw(this, w, h, clockColor.toArgb(), clockY, clockScale, showSeconds, showDate, now, DateFormat.is24HourFormat(ctx), ctx)
+            ClockRenderer.draw(this, w, h, clockColor.toArgb(), clockY, clockScale, showSeconds, showDate, now, DateFormat.is24HourFormat(ctx), ctx, clockAlpha)
         }
         drawImage(
             fgImg,
