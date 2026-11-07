@@ -21,21 +21,37 @@ object ClockRenderer {
     private val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
 
     private var fontsReady = false
+    private var loadedFontKey: String? = null
 
     private fun ensureFonts(context: Context) {
-        if (fontsReady) return
-        val inter = try {
-            Typeface.createFromAsset(context.assets, "fonts/Inter.ttf")
-        } catch (_: Throwable) {
-            Typeface.create("sans-serif", Typeface.NORMAL)
+        val custom = Prefs.fontFile(context)
+        val desired = if (custom.exists()) custom.absolutePath else "asset:inter"
+        if (fontsReady && desired == loadedFontKey) return
+
+        var isCustom = false
+        val tf = if (desired == "asset:inter") {
+            runCatching { Typeface.createFromAsset(context.assets, "fonts/Inter.ttf") }
+                .getOrElse { Typeface.create("sans-serif", Typeface.NORMAL) }
+        } else {
+            runCatching { Typeface.createFromFile(custom) }.getOrNull()?.also { isCustom = true }
+                ?: runCatching { Typeface.createFromAsset(context.assets, "fonts/Inter.ttf") }.getOrNull()
+                ?: Typeface.create("sans-serif", Typeface.NORMAL)
         }
-        timePaint.typeface = inter
-        datePaint.typeface = inter
-        runCatching { timePaint.fontVariationSettings = "'wght' 560, 'opsz' 32" }
-        runCatching { datePaint.fontVariationSettings = "'wght' 520, 'opsz' 20" }
-        // Slightly condensed + tight tracking → taller-looking numerals, closer to SF Pro.
-        timePaint.textScaleX = 0.95f
+        timePaint.typeface = tf
+        datePaint.typeface = tf
+        if (isCustom) {
+            // Honor the supplied font's real proportions (e.g. SF Pro).
+            timePaint.textScaleX = 1.0f
+            runCatching { timePaint.fontVariationSettings = "" }
+            runCatching { datePaint.fontVariationSettings = "" }
+        } else {
+            runCatching { timePaint.fontVariationSettings = "'wght' 560, 'opsz' 32" }
+            runCatching { datePaint.fontVariationSettings = "'wght' 520, 'opsz' 20" }
+            // Slightly condensed → taller-looking numerals, closer to SF Pro.
+            timePaint.textScaleX = 0.95f
+        }
         timePaint.letterSpacing = -0.02f
+        loadedFontKey = desired
         fontsReady = true
     }
 

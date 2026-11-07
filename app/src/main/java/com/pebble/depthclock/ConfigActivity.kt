@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.text.format.DateFormat
@@ -67,6 +68,8 @@ private fun ConfigScreen() {
     var clockY by remember { mutableFloatStateOf(p.getFloat(Prefs.KEY_CLOCK_Y, 0.26f)) }
     var clockScale by remember { mutableFloatStateOf(p.getFloat(Prefs.KEY_CLOCK_SCALE, 1.0f)) }
     var clockAlpha by remember { mutableFloatStateOf(p.getFloat(Prefs.KEY_CLOCK_ALPHA, 1.0f)) }
+    var hasCustomFont by remember { mutableStateOf(Prefs.fontFile(ctx).exists()) }
+    var fontRev by remember { mutableIntStateOf(0) }
     var showSeconds by remember { mutableStateOf(p.getBoolean(Prefs.KEY_SHOW_SECONDS, false)) }
     var showDate by remember { mutableStateOf(p.getBoolean(Prefs.KEY_SHOW_DATE, true)) }
     var parallax by remember { mutableStateOf(p.getBoolean(Prefs.KEY_PARALLAX, true)) }
@@ -116,6 +119,26 @@ private fun ConfigScreen() {
         }
     }
 
+    val fontPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) { ImageUtils.copyToFile(ctx, uri, Prefs.fontFile(ctx)) }
+                // Validate it actually loads as a font; createFromFile throws if not.
+                Typeface.createFromFile(Prefs.fontFile(ctx))
+                hasCustomFont = true
+                status = null
+                Prefs.bumpRevision(ctx)
+                fontRev++
+            } catch (t: Throwable) {
+                Prefs.fontFile(ctx).delete()
+                status = "That file didn't load as a font. Use a .ttf or .otf."
+            }
+        }
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -150,7 +173,7 @@ private fun ConfigScreen() {
                 .align(Alignment.CenterHorizontally)
         ) {
             if (bg != null && fg != null) {
-                PreviewCanvas(bg!!, fg!!, clockColor, clockY, clockScale, clockAlpha, showSeconds, showDate)
+                PreviewCanvas(bg!!, fg!!, clockColor, clockY, clockScale, clockAlpha, showSeconds, showDate, fontRev)
             } else {
                 Surface(color = Color(0xFF15171C), modifier = Modifier.fillMaxSize()) {
                     Box(contentAlignment = Alignment.Center) {
@@ -188,6 +211,31 @@ private fun ConfigScreen() {
 
         HorizontalDivider()
 
+        Text("Clock font", style = MaterialTheme.typography.titleSmall)
+        Text(
+            if (hasCustomFont) "Using your custom font" else "Inter (built-in)",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF8A8F98)
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { fontPicker.launch("*/*") }) { Text("Load .ttf / .otf") }
+            if (hasCustomFont) {
+                TextButton(onClick = {
+                    Prefs.fontFile(ctx).delete()
+                    hasCustomFont = false
+                    Prefs.bumpRevision(ctx)
+                    fontRev++
+                }) { Text("Reset") }
+            }
+        }
+        Text(
+            "Want the exact iOS clock? Download SF Pro from Apple's developer site and load the .otf here — the app can't ship Apple's font itself.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF8A8F98)
+        )
+
+        HorizontalDivider()
+
         Button(
             onClick = { persist(); launchWallpaperPicker(ctx) },
             enabled = bg != null && fg != null,
@@ -206,12 +254,14 @@ private fun ConfigScreen() {
 @Composable
 private fun PreviewCanvas(
     bg: Bitmap, fg: Bitmap, clockColor: Color,
-    clockY: Float, clockScale: Float, clockAlpha: Float, showSeconds: Boolean, showDate: Boolean
+    clockY: Float, clockScale: Float, clockAlpha: Float, showSeconds: Boolean, showDate: Boolean,
+    fontRev: Int
 ) {
     val ctx = LocalContext.current
     // Recompose every second so the preview clock ticks.
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
+    // Keyed by fontRev so swapping the clock font refreshes the preview immediately.
+    LaunchedEffect(fontRev) {
         while (true) {
             now = System.currentTimeMillis()
             kotlinx.coroutines.delay(1000)

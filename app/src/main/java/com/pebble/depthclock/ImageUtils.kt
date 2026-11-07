@@ -61,6 +61,13 @@ object ImageUtils {
         return out
     }
 
+    /** Copy a picked file (e.g. a .ttf/.otf font) into app storage. */
+    fun copyToFile(ctx: Context, uri: Uri, dest: File) {
+        ctx.contentResolver.openInputStream(uri)?.use { input ->
+            FileOutputStream(dest).use { out -> input.copyTo(out) }
+        } ?: error("Could not read the selected file")
+    }
+
     fun saveJpeg(bmp: Bitmap, file: File) {
         FileOutputStream(file).use { bmp.compress(Bitmap.CompressFormat.JPEG, 92, it) }
     }

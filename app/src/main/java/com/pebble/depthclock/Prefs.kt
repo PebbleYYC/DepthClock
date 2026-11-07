@@ -23,11 +23,13 @@ object Prefs {
 
     const val BG_FILE = "background.jpg"
     const val FG_FILE = "foreground.png"
+    const val FONT_FILE = "clock_font.ttf"
 
     fun prefs(ctx: Context) = ctx.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
     fun bgFile(ctx: Context) = File(ctx.filesDir, BG_FILE)
     fun fgFile(ctx: Context) = File(ctx.filesDir, FG_FILE)
+    fun fontFile(ctx: Context) = File(ctx.filesDir, FONT_FILE)
 
     fun hasImage(ctx: Context) = bgFile(ctx).exists() && fgFile(ctx).exists()
 
