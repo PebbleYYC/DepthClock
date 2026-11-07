@@ -26,6 +26,9 @@ object ClockRenderer {
     private var isCustomFont = false
     private var lastWeight = -1f
 
+    private val tBounds = android.graphics.Rect()
+    private val dBounds = android.graphics.Rect()
+
     private fun ensureFonts(context: Context) {
         val custom = Prefs.fontFile(context)
         val desired = if (custom.exists()) custom.absolutePath else "asset:inter"
@@ -117,10 +120,13 @@ object ClockRenderer {
             val fmt = java.text.SimpleDateFormat("EEEE, MMM d", Locale.getDefault())
             val dateStr = fmt.format(cal.time)
 
-            // Account for the vertical stretch when placing the date above the time.
-            val timeTop = timeBaseline + timePaint.fontMetrics.ascent * stretch
-            val gap = h * 0.030f * scale
-            val dateBaseline = timeTop - gap - datePaint.fontMetrics.descent
+            // Measure the true top of the (stretched) time glyphs, then leave a clear fixed gap
+            // above it so the date reads as its own line, well separated from the clock.
+            timePaint.getTextBounds(time, 0, time.length, tBounds)
+            val timeVisualTop = timeBaseline + tBounds.top * stretch
+            datePaint.getTextBounds(dateStr, 0, dateStr.length, dBounds)
+            val gap = h * 0.045f
+            val dateBaseline = timeVisualTop - gap - dBounds.bottom
             canvas.drawText(dateStr, cx, dateBaseline, datePaint)
         }
 
