@@ -16,12 +16,15 @@ import java.util.Locale
  */
 object ClockRenderer {
 
+    // Heavy weight to echo the iOS lock-screen clock (SF Pro is proprietary; Roboto Black is
+    // the closest system match).
     private val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = Typeface.create("sans-serif-thin", Typeface.NORMAL)
+        typeface = Typeface.create("sans-serif-black", Typeface.NORMAL)
         textAlign = Paint.Align.CENTER
+        letterSpacing = -0.02f
     }
     private val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         textAlign = Paint.Align.CENTER
     }
 
