@@ -126,10 +126,22 @@ private fun ConfigScreen() {
             style = MaterialTheme.typography.bodyMedium
         )
 
-        // ---- Live preview ----
+        Button(
+            onClick = {
+                picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (bg == null) "Choose photo" else "Choose a different photo") }
+
+        status?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+
+        // ---- Live preview (centered phone-shaped thumbnail) ----
         Box(
             Modifier
-                .fillMaxWidth()
+                .height(360.dp)
                 .aspectRatio(9f / 19.5f)
                 .clip(RoundedCornerShape(24.dp))
                 .align(Alignment.CenterHorizontally)
@@ -149,18 +161,6 @@ private fun ConfigScreen() {
                 }
             }
         }
-
-        status?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-
-        Button(
-            onClick = {
-                picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-            },
-            enabled = !busy,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(if (bg == null) "Choose photo" else "Choose a different photo") }
 
         HorizontalDivider()
 
