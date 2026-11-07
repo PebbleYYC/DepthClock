@@ -219,7 +219,8 @@ private fun ConfigScreen() {
 
         Text("Clock font", style = MaterialTheme.typography.titleSmall)
         Text(
-            if (hasCustomFont) "Using your custom font" else "Inter (built-in)",
+            if (hasCustomFont) "Using your custom font — shown at its true proportions (Height & Weight affect the built-in font only)"
+            else "Inter (built-in)",
             style = MaterialTheme.typography.bodySmall,
             color = Color(0xFF8A8F98)
         )

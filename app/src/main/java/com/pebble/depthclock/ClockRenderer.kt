@@ -102,7 +102,9 @@ object ClockRenderer {
             String.format(Locale.getDefault(), "%d:%02d", hour, minute)
 
         val a = opacity.coerceIn(0f, 1f)
-        val stretch = stretchY.coerceIn(0.8f, 1.8f)
+        // Stretch (and the variable-weight axis) shape the built-in Inter only; a user-supplied
+        // font is rendered at its true proportions.
+        val stretch = if (isCustomFont) 1f else stretchY.coerceIn(0.8f, 1.8f)
         val cx = w / 2f + offsetX
         val timeBaseline = h * yFraction + offsetY
 
